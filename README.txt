@@ -14,3 +14,9 @@
 
 Σημείωση:
 Τα πλήκτρα έχουν διορθωθεί με pointer events ώστε να λειτουργούν σωστά σε συχνά ή συνεχόμενα πατήματα.
+
+
+Update v3:
+- Fixed stuck button state after changing direction.
+- New press now resets any previous active pointer/timer.
+- Added global pointerup/touchend safety handling.

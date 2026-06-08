@@ -19,6 +19,10 @@ button {
   border:1px solid #000; background:#fff; -webkit-appearance:none; appearance:none;
   touch-action:none; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent;
 }
+button.pressed {
+  background:#e8e8e8;
+  transform:translateY(1px);
+}
 .readout { display:inline-block; min-width:90px; font-weight:bold; }
 .stage {
   position:relative; width:min(92vw,700px); aspect-ratio:1/1; margin:0 auto;
@@ -98,41 +102,61 @@ function releaseActivePointer() {
   clearHold();
 }
 
-function startButtonPress(button, delta, speed, e) {
-  if (e) e.preventDefault();
+function markButton(button, isActive) {
+  if (!button) return;
+  button.classList.toggle('pressed', !!isActive);
+}
 
-  // Ignore a second finger or a second mouse button while a button is already active.
-  if (activePointerId !== null) return false;
-
-  activePointerId = e.pointerId;
+function startMotion(button, delta, speed) {
   activeButton = button;
   activeDelta = delta;
   activeSpeed = speed;
-
-  if (button.setPointerCapture) {
-    try { button.setPointerCapture(activePointerId); } catch (err) {}
-  }
 
   step(delta);
   clearHold();
   holdTimer = setInterval(function () {
     step(activeDelta);
   }, activeSpeed);
+}
 
+function startButtonPress(button, delta, speed, e) {
+  if (e) e.preventDefault();
+
+  // Critical fix: do not ignore a new press if the previous pointerup was missed.
+  // This can happen in mobile/PWA use when the finger slides, the browser loses focus,
+  // or the user changes direction immediately. Always reset the old motion first.
+  if (activeButton !== null || holdTimer !== null) {
+    markButton(activeButton, false);
+    releaseActivePointer();
+  }
+
+  activePointerId = e && typeof e.pointerId !== 'undefined' ? e.pointerId : null;
+  if (button.setPointerCapture && activePointerId !== null) {
+    try { button.setPointerCapture(activePointerId); } catch (err) {}
+  }
+
+  markButton(button, true);
+  startMotion(button, delta, speed);
   return false;
 }
 
 function stopButtonPress(e) {
   if (e) e.preventDefault();
-  if (activePointerId === null) return false;
-  if (e && e.pointerId !== activePointerId) return false;
 
+  // Accept pointerup from the active pointer, and also accept a generic/global pointerup.
+  // This prevents a stuck state where the opposite direction is ignored.
+  if (activePointerId !== null && e && typeof e.pointerId !== 'undefined' && e.pointerId !== activePointerId) {
+    return false;
+  }
+
+  markButton(activeButton, false);
   releaseActivePointer();
   return false;
 }
 
 function cancelButtonPress(e) {
   if (e) e.preventDefault();
+  markButton(activeButton, false);
   releaseActivePointer();
   return false;
 }
@@ -142,18 +166,32 @@ function bind(id, delta, speed) {
 
   b.addEventListener('pointerdown', function (e) {
     return startButtonPress(b, delta, speed, e);
-  });
-  b.addEventListener('pointerup', stopButtonPress);
-  b.addEventListener('pointercancel', cancelButtonPress);
-  b.addEventListener('lostpointercapture', cancelButtonPress);
+  }, { passive: false });
 
-  // Prevent the browser from generating an extra click after touch/pointer input.
+  b.addEventListener('pointerup', stopButtonPress, { passive: false });
+  b.addEventListener('pointercancel', cancelButtonPress, { passive: false });
+  b.addEventListener('pointerleave', function (e) {
+    // If the finger/mouse leaves the button while pressed, stop the motion.
+    if (activeButton === b) cancelButtonPress(e);
+  }, { passive: false });
+
+  b.addEventListener('lostpointercapture', function () {
+    // Do not rely only on lostpointercapture, because some mobile browsers fire it late.
+    if (activeButton === b) {
+      markButton(activeButton, false);
+      clearHold();
+      activePointerId = null;
+      activeButton = null;
+      activeDelta = 0;
+      activeSpeed = 0;
+    }
+  });
+
   b.addEventListener('click', function (e) {
     e.preventDefault();
     return false;
   });
 
-  // Prevent long-press context menus on mobile devices.
   b.addEventListener('contextmenu', function (e) {
     e.preventDefault();
     return false;
@@ -165,9 +203,15 @@ bind('sfBtn', 1, 80);
 bind('saBtn', -1, 80);
 bind('faBtn', -1, 40);
 
-window.addEventListener('blur', releaseActivePointer);
+// Global safety net: if pointerup is missed by the button itself, stop motion anyway.
+window.addEventListener('pointerup', stopButtonPress, { passive: false });
+window.addEventListener('pointercancel', cancelButtonPress, { passive: false });
+window.addEventListener('mouseup', cancelButtonPress, { passive: false });
+window.addEventListener('touchend', cancelButtonPress, { passive: false });
+window.addEventListener('touchcancel', cancelButtonPress, { passive: false });
+window.addEventListener('blur', cancelButtonPress);
 document.addEventListener('visibilitychange', function () {
-  if (document.hidden) releaseActivePointer();
+  if (document.hidden) cancelButtonPress();
 });
 
 render();
