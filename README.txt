@@ -1,22 +1,14 @@
-# Starting Valve Sequence PWA
+Starting Valve Sequence PWA - v4
 
-Περιεχόμενα:
-- index.html
-- manifest.json
-- service-worker.js
-- icon-192.png
-- icon-512.png
+Changes in this version:
+- Removed the FF button and its fast-ahead function.
+- Removed the FA button and its fast-astern function.
+- Renamed SF to AHEAD.
+- Renamed SA to ASTERN.
+- The application now has only two movement buttons: AHEAD and ASTERN.
+- Service worker cache version updated to force browser/PWA refresh.
 
-Οδηγίες:
-1. Ανέβασε όλα τα αρχεία στον ίδιο φάκελο στο GitHub Pages ή σε HTTPS server.
-2. Άνοιξε τη σελίδα από Chrome/Edge/Safari.
-3. Εγκατέστησε την εφαρμογή ως PWA από το μενού του browser.
-
-Σημείωση:
-Τα πλήκτρα έχουν διορθωθεί με pointer events ώστε να λειτουργούν σωστά σε συχνά ή συνεχόμενα πατήματα.
-
-
-Update v3:
-- Fixed stuck button state after changing direction.
-- New press now resets any previous active pointer/timer.
-- Added global pointerup/touchend safety handling.
+Installation / Update notes:
+1. Replace all files on the web server or GitHub Pages repository.
+2. On mobile, close and reopen the PWA.
+3. If the old interface remains visible, uninstall and reinstall the PWA or clear the browser cache.

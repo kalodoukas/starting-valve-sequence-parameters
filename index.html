@@ -41,11 +41,9 @@ button.pressed {
 </head>
 <body>
 <div class="controls">
-  <button id="ffBtn">FF</button>
-  <button id="sfBtn">SF</button>
+  <button id="sfBtn">AHEAD</button>
   <span id="ang" class="readout">0°</span>
-  <button id="saBtn">SA</button>
-  <button id="faBtn">FA</button>
+  <button id="saBtn">ASTERN</button>
 </div>
 
 <div class="stage">
@@ -163,6 +161,7 @@ function cancelButtonPress(e) {
 
 function bind(id, delta, speed) {
   var b = document.getElementById(id);
+  if (!b) return;
 
   b.addEventListener('pointerdown', function (e) {
     return startButtonPress(b, delta, speed, e);
@@ -198,10 +197,8 @@ function bind(id, delta, speed) {
   });
 }
 
-bind('ffBtn', 1, 40);
 bind('sfBtn', 1, 80);
 bind('saBtn', -1, 80);
-bind('faBtn', -1, 40);
 
 // Global safety net: if pointerup is missed by the button itself, stop motion anyway.
 window.addEventListener('pointerup', stopButtonPress, { passive: false });
